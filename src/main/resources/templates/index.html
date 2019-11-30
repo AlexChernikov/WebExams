@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Main Page</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+<div id="formForId">
+    <p>Введите номер студенческого: {{ personId }}</p>
+    <input v-model="personId">
+</div>
+<div id="app-2">
+    <ol>
+        <li v-for="exam in exams">
+            <button onclick="createExam(formForId.personId)">
+                <span>{{ exam }}</span>
+            </button>
+        </li>
+    </ol>
+</div>
+<script>
+    //var eventSource = new EventSource(window.location.origin + "/events");
+    //var ws = new WebSocket(`ws://${window.location.host}/ws`);
+    var formForId = new Vue({
+        el: '#formForId',
+        data: {
+            personId: ''
+        }
+    });
+    var app2 = new Vue({
+        el: '#app-2',
+        data: {
+            exams: []
+        },
+        mounted: async function () {
+            let resp = await fetch(window.location.origin + "/exams");
+            this.exams = await resp.json();
+        }
+    });
+
+    function createExam(id, examData) {
+        console.log(formForId.personId.length);
+        if((/[^[0-9]/.test(formForId.personId)) || (formForId.personId.length != 6)){
+            alert('ОШИБКА! Номер студенческого билета должен состоять из 6 цифр!');
+        } else {
+            console.log(id);
+        };
+
+    }
+</script>
+</body>
+</html>

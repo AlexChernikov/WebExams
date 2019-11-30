@@ -1,0 +1,43 @@
+{
+  "examName": "TEST",
+  "questions":[
+    {
+      "question": "question 1",
+      "answers": [
+        {
+          "answer": "answer 1",
+          "isRight": true
+        },
+        {
+          "answer": "answer 2",
+          "isRight": false
+        },
+        {
+          "answer": "answer 3",
+          "isRight": false
+        }
+      ]
+    },
+    {
+      "question": "question 2",
+      "answers": [
+        {
+          "answer": "answer 1",
+          "isRight": false
+        },
+        {
+          "answer": "answer 2",
+          "isRight": false
+        },
+        {
+          "answer": "answer 3",
+          "isRight": false
+        },
+        {
+          "answer": "answer 4",
+          "isRight": true
+        }
+      ]
+    }
+  ]
+}

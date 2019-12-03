@@ -1,53 +1,164 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml" xmlns:v-bind="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="UTF-8">
-    <title>Main Page</title>
+    <title>MainPage</title>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 </head>
-<body>
 <div id="formForId">
     <p>Введите номер студенческого: {{ personId }}</p>
-    <input v-model="personId">
+    <input id="textField" v-model="personId">
 </div>
-<div id="app-2">
+<div id="examsButtons">
     <ol>
-        <li v-for="exam in exams">
-            <button onclick="createExam(formForId.personId)">
-                <span>{{ exam }}</span>
+        <li v-for="examsEntrie in examsEntries">
+            <button v-bind:id="examsEntrie[0]" v-on:click="createExam(examsEntrie[1])">
+                <span>{{ examsEntrie[0] }}</span>
             </button>
         </li>
     </ol>
 </div>
+<div id="EXAM">
+    <ol>
+        <create-exam v-bind:exam="examData"></create-exam>
+    </ol>
+</div>
 <script>
-    //var eventSource = new EventSource(window.location.origin + "/events");
-    //var ws = new WebSocket(`ws://${window.location.host}/ws`);
+    let trueAns = 0;
+    Vue.component('create-exam', {
+        props: {
+            B: "B",
+            exam: {
+                examName: String,
+                questions: [{
+                    question: String,
+                    answers: [{
+                        answer: String,
+                        right: Boolean,
+                    }],
+                }],
+            },
+        },
+        template:
+            '<div><h1>{{ exam.examName }}</h1>' +
+            '<ol v-for="question in exam.questions">' +
+            '<div><h2>{{ question.question }}</h2>' +
+            '<li v-for="answer in question.answers">' +
+            '<div><h3 v-bind:id="question.question + answer.answer + answer.right">{{ answer.answer }}</h3>' +
+            '<button v-bind:id="question.question + answer.answer" v-on:click="getAnswer(question, answer.right)">' +
+            '<span>Выбрать</span>' +
+            '</button></div>' +
+            '</li></div>' +
+            '</ol>' +
+            '<button id="finishButton" v-on:click="getResult(exam.questions, exam.examName)">' +
+            '<span>Завершить тест</span>' +
+            '</button></div>',
+        methods: {
+            getAnswer: function (question, right) {
+                if (right) trueAns = trueAns + 1;
+                for (let answer of question.answers) {
+                    document.getElementById(question.question+answer.answer).disabled = true;
+                    if (answer.right){
+                        document.getElementById(question.question+answer.answer+answer.right).style.background = "#548f3f";
+                        document.getElementById(question.question+answer.answer+answer.right).style.color = "#bababa";
+                    }
+                }
+            },
+            getResult: async function (questions, examName) {
+                console.log(questions.length/2);
+                if (trueAns >= (questions.length/2)){
+                    swal("Вы сдали тест!", "Ваш результат: " + trueAns + " / " + questions.length, "success");
+                } else {
+                    swal("Тест провален!", "Ваш результат: " + trueAns + " / " + questions.length, "error");
+                    document.getElementById("finishButton").disabled = true;
+                    return;
+                }
+                document.getElementById("finishButton").disabled = true;
+                let id = formForId.personId;
+                await fetch(window.location.origin + "/postResult", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({examName, trueAns, id}),
+                });
+            }
+        }
+    });
+
     var formForId = new Vue({
         el: '#formForId',
         data: {
             personId: ''
         }
     });
-    var app2 = new Vue({
-        el: '#app-2',
+    var examsButtons = new Vue({
+        el: '#examsButtons',
         data: {
-            exams: []
+            exams: new Map(),
+            examsEntries: [],
+        },
+        methods: {
+            createExam: function(examData) {
+                if((/[^[0-9]/.test(formForId.personId)) || (formForId.personId.length != 6)){
+                    swal("Внимание!", "Номер студенческого билета должен состоять из 6 цифр!", "warning");
+                    return;
+                }
+                swal("Отлично!", "Можете приступать к экзаменовке!", "success");
+                document.getElementById('textField').setAttribute("readonly", "readonly");
+                for (let key of this.exams.keys()) {
+                    console.log(key);
+                    document.getElementById(key).disabled = true;
+                }
+                // console.log(examData);
+                // console.log(formForId.personId);
+                var EXAM = new Vue({
+                    el: '#EXAM',
+                    data: {
+                        examData
+                    }
+                });
+            }
         },
         mounted: async function () {
-            let resp = await fetch(window.location.origin + "/exams");
-            this.exams = await resp.json();
+            let resp1 = await fetch(window.location.origin + "/examsNames");
+            let examsNames = await resp1.json();
+            let resp2 = await fetch(window.location.origin + "/exams");
+            let examsJson = await resp2.json();
+            for (let num = 0; num < examsJson.length; num++) {
+                // console.log(this.examsNames[num]);
+                // console.log(examsJson[num]);
+                this.exams.set(examsNames[num], examsJson[num]);
+            }
+            this.examsEntries = this.exams.entries();
+            // for (let e of this.examsEntries) {
+            //     console.log(e[0]);
+            //     console.log(e[1]);
+            // }
         }
     });
-
-    function createExam(id, examData) {
-        console.log(formForId.personId.length);
-        if((/[^[0-9]/.test(formForId.personId)) || (formForId.personId.length != 6)){
-            alert('ОШИБКА! Номер студенческого билета должен состоять из 6 цифр!');
-        } else {
-            console.log(id);
-        };
-
-    }
 </script>
-</body>
+<style>
+    h1 {
+        color: #3c3f41;
+        padding: 20px;
+        background: #3e86a0;
+        font-size: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    h2 {
+         color: #3c3f41;
+    }
+    h3 {
+          color: #3c3f41;
+    }
+    button {
+        color: #bababa;
+        background: #3c3f41;
+        align-items: center;
+    }
+</style>
 </html>
